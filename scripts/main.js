@@ -1,5 +1,7 @@
 "use strict"
 
+import { Camera } from "./camera.js";
+
 const canvasWidth = 800;
 const canvasHeight = 600;
 
@@ -9,6 +11,32 @@ canvas.height = canvasHeight;
 const gl = canvas.getContext("webgl");
 let lastDate = new Date().getTime();
 let deltaTime = 0.0;
+
+const havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+canvas.requestPointerLock = havePointerLock ? (canvas.requestPointerLock || canvas.mozRequestPointerLock) : null;
+let mouseGrabbed = false;
+
+const controls = {
+    moveForward: false,
+    moveBackward: false,
+    strafeLeft: false,
+    strafeRight: false,
+    moveUp: false,
+    moveDown: false
+}
+
+const camera = new Camera(0.0, 20.0, 30.0, 0.0, -30.0, 0.0);
+
+function resetCamera(cam) {
+    cam.positionX = 0.0;
+    cam.positionY = 0.0;
+    cam.positionZ = 0.0;
+    cam.rotationX = 0.0; 
+    cam.rotationY = 0.0;
+    cam.directionX = 0.0;
+    cam.directionY = 0.0;
+    cam.directionZ = -1.0;
+}
 
 function makeSphere(xPos, yPos, zPos, radius) {
     const points = [];
@@ -137,8 +165,8 @@ function renderScene() {
     const zFar = 100.0;
     mat4.perspective(projectionMatrix, fov, aspect, zNear, zFar);
 
-    const position = [0.0, 0.0, 10.0];
-    const frontView = [0.0, 0.0, -1.0];
+    const position = [camera.positionX, camera.positionY, camera.positionZ];
+    const frontView = [camera.positionX + camera.directionX, camera.positionY + camera.directionY, camera.positionZ + camera.directionZ];
     const cameraUpVector = [0.0, 1.0, 0.0];
     mat4.lookAt(viewMatrix, position, frontView, cameraUpVector);
 
@@ -167,9 +195,176 @@ function lifeCycle() {
     deltaTime = (currentTime - lastDate) / 1000.0;
     lastDate = currentTime;
 
+    handleControls();
+
     renderScene();
 
     window.requestAnimationFrame(lifeCycle);
+}
+
+function handleControls() {
+    const RADIAN = Math.PI / 180.0;
+    const speed = deltaTime * camera.flyingSpeed;
+
+    if (controls.moveForward) {
+        camera.positionX += camera.directionX * speed;
+        camera.positionY += camera.directionY * speed;
+        camera.positionZ += camera.directionZ * speed;
+    }
+    if (controls.moveBackward) {
+        camera.positionX -= camera.directionX * speed;
+        camera.positionY -= camera.directionY * speed;
+        camera.positionZ -= camera.directionZ * speed;
+    }
+    if (controls.strafeLeft) {
+        const xOffset = Math.sin((camera.rotationX + 90) * RADIAN) * speed;
+        const zOffset = Math.cos((camera.rotationX + 90) * RADIAN) * speed;
+        camera.positionX -= xOffset;
+        camera.positionZ += zOffset;
+    }
+    if (controls.strafeRight) {
+        const xOffset = Math.sin((camera.rotationX + 90) * RADIAN) * speed;
+        const zOffset = Math.cos((camera.rotationX + 90) * RADIAN) * speed;
+        camera.positionX += xOffset;
+        camera.positionZ -= zOffset;
+    }
+    if (controls.moveUp) {
+        camera.positionY += speed;
+    }
+    if (controls.moveDown) {
+        camera.positionY -= speed;
+    }
+}
+
+canvas.addEventListener("mousedown", function(e) {
+    if (!mouseGrabbed && canvas.requestPointerLock) {
+        canvas.requestPointerLock();
+    }
+});
+canvas.addEventListener("mousemove", function(e) {
+    if (mouseGrabbed) {
+        camera.rotationX += e.movementX * 0.1;
+        camera.rotationY -= e.movementY * 0.1;
+
+        if (camera.rotationX < 0.0) {
+            camera.rotationX += 360.0;
+        } else if (camera.rotationX >= 360.0) {
+            camera.rotationX -= 360.0;
+        }
+
+        const MAX_PITCH = 89.0;
+        if (camera.rotationY < -MAX_PITCH) {
+            camera.rotationY = -MAX_PITCH;
+        } else if (camera.rotationY > MAX_PITCH) {
+            camera.rotationY = MAX_PITCH;
+        }
+
+        camera.calculateDirection();
+    }
+});
+window.addEventListener("keydown", function(e) {
+    switch (e.code) {
+        case "KeyW":
+        case "ArrowUp":
+        case "Numpad8":
+            controls.moveForward = true;
+            break;
+
+        case "KeyS":
+        case "ArrowDown":
+        case "Numpad2":
+            controls.moveBackward = true;
+            break;
+
+        case "KeyD":
+        case "ArrowRight":
+        case "Numpad6":
+            controls.strafeRight = true;
+            break;
+
+        case "KeyA":
+        case "ArrowLeft":
+        case "Numpad4":
+            controls.strafeLeft = true;
+            break;
+
+        case "Space":
+            controls.moveUp = true;
+            break;
+
+        case "KeyC":
+            controls.moveDown = true;
+            break;
+
+        case "KeyR":
+            resetCamera(camera);
+            console.log("Camera is reset");
+            break;
+
+        case "Enter":
+        case "NumpadEnter":
+            if (mouseGrabbed && document.exitPointerLock) {
+                document.exitPointerLock();
+            }
+            break;
+    }
+});
+window.addEventListener("keyup", function(e) {
+    switch (e.code) {
+        case "KeyW":
+        case "ArrowUp":
+        case "Numpad8":
+            controls.moveForward = false;
+            break;
+
+        case "KeyS":
+        case "ArrowDown":
+        case "Numpad2":
+            controls.moveBackward = false;
+            break;
+
+        case "KeyD":
+        case "ArrowRight":
+        case "Numpad6":
+            controls.strafeRight = false;
+            break;
+
+        case "KeyA":
+        case "ArrowLeft":
+        case "Numpad4":
+            controls.strafeLeft = false;
+            break;
+
+        case "Space":
+            controls.moveUp = false;
+            break;
+
+        case "KeyC":
+            controls.moveDown = false;
+            break;
+    }
+});
+function pointerLockChangeCallback() {
+    if (!havePointerLock) {
+        console.error("Your browser does not support pointer lock!");
+        return;
+    }
+
+    if (mouseGrabbed) {
+        mouseGrabbed = false;
+        console.log("Mouse released");
+    } else {
+        mouseGrabbed = true;
+        console.log("Mouse grabbed");
+    }
+}
+
+if (havePointerLock) {
+    document.addEventListener('pointerlockchange', pointerLockChangeCallback, false);
+    document.addEventListener('mozpointerlockchange', pointerLockChangeCallback, false);
+    document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock;
+} else {
+    document.exitPointerLock = null;
 }
 
 window.requestAnimationFrame(lifeCycle);
