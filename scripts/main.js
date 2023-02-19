@@ -1,14 +1,15 @@
 "use strict"
 
 import { Camera } from "./camera.js";
+import { Font } from "./font.js";
 
-const canvasWidth = 800;
-const canvasHeight = 600;
+export const canvasWidth = 800;
+export const canvasHeight = 600;
 
 const canvas = document.getElementById("canvas");
 canvas.width = canvasWidth;
 canvas.height = canvasHeight;
-const gl = canvas.getContext("webgl");
+export const gl = canvas.getContext("webgl");
 let lastDate = new Date().getTime();
 let deltaTime = 0.0;
 
@@ -26,6 +27,7 @@ const controls = {
 }
 
 const camera = new Camera(0.0, 20.0, 30.0, 0.0, -30.0, 0.0);
+const font = new Font("/textures/font.png");
 
 function resetCamera(cam) {
     cam.positionX = 0.0;
@@ -73,6 +75,14 @@ function makeCoordinateGrid(gridSize, yPos, cellSize) {
     }
 
     return grid;
+}
+
+function drawHudText() {
+    let t = `Position: [${camera.positionX.toFixed(2)} ${camera.positionY.toFixed(2)} ${camera.positionZ.toFixed(2)}]`;
+    font.drawString(t, 0, 0, 0xFFFFFFFF);
+
+    t = `Rotation: [${camera.rotationX.toFixed(2)} ${camera.rotationY.toFixed(2)}]`;
+    font.drawString(t, 0, 18, 0x00FFFFFF);
 }
 
 const vertexShaderSource = `
@@ -131,8 +141,6 @@ if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
 gl.deleteShader(vertexShader);
 gl.deleteShader(fragmentShader);
 
-gl.useProgram(shaderProgram);
-
 const positionAttributeLocation = gl.getAttribLocation(shaderProgram, "a_Position");
 const colorAttributebLocation = gl.getAttribLocation(shaderProgram, "a_Color");
 gl.enableVertexAttribArray(positionAttributeLocation);
@@ -172,6 +180,7 @@ function renderScene() {
 
     const projectionMatrixUniformLocation = gl.getUniformLocation(shaderProgram, "u_ProjectionMatrix");
     const viewMatrixUniformLocation = gl.getUniformLocation(shaderProgram, "u_ViewMatrix");
+    gl.useProgram(shaderProgram);
     gl.uniformMatrix4fv(projectionMatrixUniformLocation, gl.FALSE, projectionMatrix);
     gl.uniformMatrix4fv(viewMatrixUniformLocation, gl.FALSE, viewMatrix);
 
@@ -188,6 +197,8 @@ function renderScene() {
     gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, gl.FALSE, strideSizeBits, 0);
     gl.vertexAttribPointer(colorAttributebLocation, 4, gl.FLOAT, gl.FALSE, strideSizeBits, Float32Array.BYTES_PER_ELEMENT * 3);
     gl.drawArrays(gl.LINES, 0, grid.length / strideSize);
+
+    drawHudText();
 }
 
 function lifeCycle() {
