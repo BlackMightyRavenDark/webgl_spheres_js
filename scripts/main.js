@@ -2,6 +2,7 @@
 
 import { Camera } from "./camera.js";
 import { Font } from "./font.js";
+import { Sphere } from "./sphere.js";
 
 export const canvasWidth = 800;
 export const canvasHeight = 600;
@@ -28,6 +29,7 @@ const controls = {
 
 const camera = new Camera(0.0, 20.0, 30.0, 0.0, -30.0, 0.0);
 const font = new Font("/textures/font.png");
+const sphere = new Sphere(0, 0, 0, 1, 32, 0xFFFF00FF);
 
 function resetCamera(cam) {
     cam.positionX = 0.0;
@@ -38,30 +40,6 @@ function resetCamera(cam) {
     cam.directionX = 0.0;
     cam.directionY = 0.0;
     cam.directionZ = -1.0;
-}
-
-function mapRange(x, in_min, in_max, out_min, out_max)
-{
-    const diff = in_max - in_min;
-    return (x - in_min) * (out_max - out_min) / diff + out_min;
-}
-
-function makeSphere(xPos, yPos, zPos, radius, stepCount) {
-    const points = [];
-
-    for (let theta = 0; theta < stepCount; ++theta) {
-        const lon = mapRange(theta, 0, stepCount, 0, Math.PI);
-        for (let phi = 0; phi < stepCount; ++phi) {
-            const lat = mapRange(phi, 0, stepCount, 0, Math.PI * 2)
-            const x = Math.sin(lat) * Math.cos(lon) * radius;
-            const y = Math.sin(lat) * Math.sin(lon) * radius;
-            const z = Math.cos(lat) * radius;
-            points.push(x + xPos, y + yPos, z + zPos);
-            points.push(1.0, 1.0, 0.0, 1.0);
-        }
-    }
-
-    return points;
 }
 
 function makeCoordinateGrid(gridSize, yPos, cellSize) {
@@ -154,11 +132,11 @@ gl.enableVertexAttribArray(positionAttributeLocation);
 gl.enableVertexAttribArray(colorAttributebLocation);
 
 const grid = makeCoordinateGrid(10, -1, 1);
-const sphere = makeSphere(0, 0, 0, 0.5, 32);
+const spherePoints = sphere.make();
 
 const vboSphere = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vboSphere);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sphere), gl.STATIC_DRAW);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(spherePoints), gl.STATIC_DRAW);
 
 const vboGrid = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vboGrid);
@@ -197,7 +175,7 @@ function renderScene() {
     gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, gl.FALSE, strideSizeBits, 0);
     gl.vertexAttribPointer(colorAttributebLocation, 4, gl.FLOAT, gl.FALSE, strideSizeBits, Float32Array.BYTES_PER_ELEMENT * 3);
 
-    gl.drawArrays(gl.POINTS, 0, sphere.length / strideSize);
+    gl.drawArrays(gl.POINTS, 0, spherePoints.length / strideSize);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, vboGrid);
 
