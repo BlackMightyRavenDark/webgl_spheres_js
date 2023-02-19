@@ -4,8 +4,8 @@ import { Camera } from "./camera.js";
 import { Font } from "./font.js";
 import { Sphere } from "./sphere.js";
 
-export const canvasWidth = 800;
-export const canvasHeight = 600;
+export const canvasWidth = window.innerWidth;
+export const canvasHeight = window.innerHeight - 4;
 
 const canvas = document.getElementById("canvas");
 canvas.width = canvasWidth;
