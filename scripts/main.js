@@ -65,10 +65,20 @@ function makeSpheres(x, z) {
     const a = new Array(x * z);
     for (let i = 0; i < x; ++i) {
         for (let j = 0; j < z; ++j) {
-            a[i * x + j] = new Sphere(i + 0.5, 0.5, j + 0.5, 0.4, 16, 0xFFFF00FF);
+            const random = Math.random() * 2;
+            a[i * x + j] = new Sphere(i + 0.5, 0.5, j + 0.5, 0.4, random, 16, 0xFFFF00FF);
         }
     }
     return a;
+}
+
+function stepSpheres() {
+    for (let i = 0; i < spheres.length; ++i) {
+        spheres[i].yPos += spheres[i].speed * deltaTime;
+        if (spheres[i].yPos >= 10) {
+            spheres[i].yPos = 0;
+        }
+    }
 }
 
 function drawHudText() {
@@ -143,14 +153,7 @@ gl.enableVertexAttribArray(colorAttributebLocation);
 const grid = makeCoordinateGrid(10, -1, 1);
 const spheres = makeSpheres(10, 10);
 
-let spherePoints = [];
-for (let i = 0; i < spheres.length; ++i) {
-    spherePoints = spherePoints.concat(spheres[i].make());
-}
-
 const vboSphere = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, vboSphere);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(spherePoints), gl.STATIC_DRAW);
 
 const vboGrid = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vboGrid);
@@ -185,7 +188,15 @@ function renderScene() {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    stepSpheres();
+    let spherePoints = [];
+    for (let i = 0; i < spheres.length; ++i) {
+        spherePoints = spherePoints.concat(spheres[i].make());
+    }
+    
     gl.bindBuffer(gl.ARRAY_BUFFER, vboSphere);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(spherePoints), gl.STREAM_DRAW);
+
     gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, gl.FALSE, strideSizeBits, 0);
     gl.vertexAttribPointer(colorAttributebLocation, 4, gl.FLOAT, gl.FALSE, strideSizeBits, Float32Array.BYTES_PER_ELEMENT * 3);
 

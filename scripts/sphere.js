@@ -1,10 +1,11 @@
 export class Sphere {
 
-    constructor (x, y, z, radius, detalizationLevel, color) {
+    constructor (x, y, z, radius, speed, detalizationLevel, color) {
         this.xPos = x;
         this.yPos = y;
         this.zPos = z;
         this.radius = radius;
+        this.speed = speed;
         this.detalizationLevel = detalizationLevel;
         this.color = color;
     }
