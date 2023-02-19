@@ -27,9 +27,8 @@ const controls = {
     moveDown: false
 }
 
-const camera = new Camera(0.0, 20.0, 30.0, 0.0, -30.0, 0.0);
+const camera = new Camera(5.0, 25.0, 40.0, 0.0, -30.0, 0.0);
 const font = new Font("/textures/font.png");
-const sphere = new Sphere(0, 0, 0, 1, 32, 0xFFFF00FF);
 
 function resetCamera(cam) {
     cam.positionX = 0.0;
@@ -45,21 +44,31 @@ function resetCamera(cam) {
 function makeCoordinateGrid(gridSize, yPos, cellSize) {
     const grid = [];
 
-    for (let x = -gridSize; x <= gridSize; x += cellSize) {
-        grid.push(x, yPos, -gridSize);
+    for (let x = 0; x <= gridSize; x += cellSize) {
+        grid.push(x, yPos, 0);
         grid.push(1.0, 1.0, 1.0, 1.0);
         grid.push(x, yPos, gridSize);
         grid.push(1.0, 1.0, 1.0, 1.0);
     }
 
-    for (let z = -gridSize; z <= gridSize; z += cellSize) {
-        grid.push(-gridSize, yPos, z);
+    for (let z = 0; z <= gridSize; z += cellSize) {
+        grid.push(0, yPos, z);
         grid.push(1.0, 1.0, 1.0, 1.0);
         grid.push(gridSize, yPos, z);
         grid.push(1.0, 1.0, 1.0, 1.0);
     }
 
     return grid;
+}
+
+function makeSpheres(x, z) {
+    const a = new Array(x * z);
+    for (let i = 0; i < x; ++i) {
+        for (let j = 0; j < z; ++j) {
+            a[i * x + j] = new Sphere(i + 0.5, 0.5, j + 0.5, 0.4, 16, 0xFFFF00FF);
+        }
+    }
+    return a;
 }
 
 function drawHudText() {
@@ -132,7 +141,12 @@ gl.enableVertexAttribArray(positionAttributeLocation);
 gl.enableVertexAttribArray(colorAttributebLocation);
 
 const grid = makeCoordinateGrid(10, -1, 1);
-const spherePoints = sphere.make();
+const spheres = makeSpheres(10, 10);
+
+let spherePoints = [];
+for (let i = 0; i < spheres.length; ++i) {
+    spherePoints = spherePoints.concat(spheres[i].make());
+}
 
 const vboSphere = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vboSphere);
