@@ -40,16 +40,23 @@ function resetCamera(cam) {
     cam.directionZ = -1.0;
 }
 
-function makeSphere(xPos, yPos, zPos, radius) {
+function mapRange(x, in_min, in_max, out_min, out_max)
+{
+    const diff = in_max - in_min;
+    return (x - in_min) * (out_max - out_min) / diff + out_min;
+}
+
+function makeSphere(xPos, yPos, zPos, radius, stepCount) {
     const points = [];
 
-    const stepSize = Math.PI / 180.0;
-    for (let theta = 0; theta < Math.PI; theta += stepSize) {
-        for (let phi = 0; phi < Math.PI * 2; phi += stepSize) {
-            const x = xPos + (Math.sin(theta) * Math.cos(phi) * radius);
-            const y = yPos + (Math.sin(theta) * Math.sin(phi) * radius);
-            const z = zPos + (Math.cos(theta) * radius);
-            points.push(x, y, z);
+    for (let theta = 0; theta < stepCount; ++theta) {
+        const lon = mapRange(theta, 0, stepCount, 0, Math.PI);
+        for (let phi = 0; phi < stepCount; ++phi) {
+            const lat = mapRange(phi, 0, stepCount, 0, Math.PI * 2)
+            const x = Math.sin(lat) * Math.cos(lon) * radius;
+            const y = Math.sin(lat) * Math.sin(lon) * radius;
+            const z = Math.cos(lat) * radius;
+            points.push(x + xPos, y + yPos, z + zPos);
             points.push(1.0, 1.0, 0.0, 1.0);
         }
     }
@@ -147,7 +154,7 @@ gl.enableVertexAttribArray(positionAttributeLocation);
 gl.enableVertexAttribArray(colorAttributebLocation);
 
 const grid = makeCoordinateGrid(10, -1, 1);
-const sphere = makeSphere(0, 3, 0, 4);
+const sphere = makeSphere(0, 0, 0, 0.5, 32);
 
 const vboSphere = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vboSphere);
