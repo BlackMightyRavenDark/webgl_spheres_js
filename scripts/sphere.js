@@ -1,3 +1,5 @@
+import { gl } from "./main.js";
+
 export class Sphere {
 
     constructor (x, y, z, radius, speed, detalizationLevel, color) {
@@ -8,6 +10,8 @@ export class Sphere {
         this.speed = speed;
         this.detalizationLevel = detalizationLevel;
         this.color = color;
+
+        this.vbo = gl.createBuffer();
     }
 
     make() {
@@ -18,6 +22,7 @@ export class Sphere {
 
         const points = [];
         const TWO_PI = Math.PI * 2;
+        this.verticeCount = 0;
         for (let theta = 0; theta < this.detalizationLevel; ++theta) {
             const lon = this.#mapRange(theta, 0, this.detalizationLevel, 0, Math.PI);
             for (let phi = 0; phi < this.detalizationLevel; ++phi) {
@@ -25,12 +30,13 @@ export class Sphere {
                 const x = Math.sin(lat) * Math.cos(lon) * this.radius;
                 const y = Math.sin(lat) * Math.sin(lon) * this.radius;
                 const z = Math.cos(lat) * this.radius;
-                points.push(x + this.xPos, y + this.yPos, z + this.zPos);
+                points.push(x, y, z);
                 points.push(r, g, b, a);
+                this.verticeCount++;
             }
         }
-    
-        return points;
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(points), gl.STATIC_DRAW);
     }
 
     #mapRange(x, in_min, in_max, out_min, out_max) {

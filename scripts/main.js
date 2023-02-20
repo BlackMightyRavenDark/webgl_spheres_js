@@ -66,7 +66,9 @@ function makeSpheres(x, z) {
     for (let i = 0; i < x; ++i) {
         for (let j = 0; j < z; ++j) {
             const random = Math.random() * 2;
-            a[i * x + j] = new Sphere(i + 0.5, 0.5, j + 0.5, 0.4, random, 16, 0xFFFF00FF);
+            let s = new Sphere(i + 0.5, 0.5, j + 0.5, 0.4, random, 16, 0xFFFF00FF);
+            s.make();
+            a[i * x + j] = s;
         }
     }
     return a;
@@ -95,13 +97,14 @@ const vertexShaderSource = `
 
         uniform mat4 u_ProjectionMatrix;
         uniform mat4 u_ViewMatrix;
+        uniform mat4 u_ModelMatrix;
 
         varying vec4 color;
 
         void main()
         {
             color = a_Color;
-            gl_Position = u_ProjectionMatrix * u_ViewMatrix * vec4(a_Position, 1.0);
+            gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
             gl_PointSize = 1.0;
         }
     `;
@@ -153,8 +156,6 @@ gl.enableVertexAttribArray(colorAttributebLocation);
 const grid = makeCoordinateGrid(10, -1, 1);
 const spheres = makeSpheres(10, 10);
 
-const vboSphere = gl.createBuffer();
-
 const vboGrid = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vboGrid);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(grid), gl.STATIC_DRAW);
@@ -164,6 +165,8 @@ const strideSizeBits = strideSize * Float32Array.BYTES_PER_ELEMENT;
 
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
 gl.viewport(0.0, 0.0, canvasWidth, canvasHeight);
+
+const modelMatrix = new Float32Array(16);
 
 function renderScene() {
     const projectionMatrix = new Float32Array(16);
@@ -182,30 +185,37 @@ function renderScene() {
 
     const projectionMatrixUniformLocation = gl.getUniformLocation(shaderProgram, "u_ProjectionMatrix");
     const viewMatrixUniformLocation = gl.getUniformLocation(shaderProgram, "u_ViewMatrix");
+    const modelMatrixUniformLocation = gl.getUniformLocation(shaderProgram, "u_ModelMatrix");
+
     gl.useProgram(shaderProgram);
-    gl.uniformMatrix4fv(projectionMatrixUniformLocation, gl.FALSE, projectionMatrix);
-    gl.uniformMatrix4fv(viewMatrixUniformLocation, gl.FALSE, viewMatrix);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     stepSpheres();
-    let spherePoints = [];
     for (let i = 0; i < spheres.length; ++i) {
-        spherePoints = spherePoints.concat(spheres[i].make());
+        mat4.identity(modelMatrix);
+        mat4.translate(modelMatrix, modelMatrix, [spheres[i].xPos, spheres[i].yPos, spheres[i].zPos]);
+        gl.uniformMatrix4fv(projectionMatrixUniformLocation, gl.FALSE, projectionMatrix);
+        gl.uniformMatrix4fv(viewMatrixUniformLocation, gl.FALSE, viewMatrix);
+        gl.uniformMatrix4fv(modelMatrixUniformLocation, gl.FALSE, modelMatrix);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, spheres[i].vbo);
+        gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, gl.FALSE, strideSizeBits, 0);
+        gl.vertexAttribPointer(colorAttributebLocation, 4, gl.FLOAT, gl.FALSE, strideSizeBits, Float32Array.BYTES_PER_ELEMENT * 3);
+
+        gl.drawArrays(gl.POINTS, 0, spheres[i].verticeCount);
     }
-    
-    gl.bindBuffer(gl.ARRAY_BUFFER, vboSphere);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(spherePoints), gl.STREAM_DRAW);
 
-    gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, gl.FALSE, strideSizeBits, 0);
-    gl.vertexAttribPointer(colorAttributebLocation, 4, gl.FLOAT, gl.FALSE, strideSizeBits, Float32Array.BYTES_PER_ELEMENT * 3);
-
-    gl.drawArrays(gl.POINTS, 0, spherePoints.length / strideSize);
+    mat4.identity(modelMatrix);
+    gl.uniformMatrix4fv(projectionMatrixUniformLocation, gl.FALSE, projectionMatrix);
+    gl.uniformMatrix4fv(viewMatrixUniformLocation, gl.FALSE, viewMatrix);
+    gl.uniformMatrix4fv(modelMatrixUniformLocation, gl.FALSE, modelMatrix);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, vboGrid);
 
     gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, gl.FALSE, strideSizeBits, 0);
     gl.vertexAttribPointer(colorAttributebLocation, 4, gl.FLOAT, gl.FALSE, strideSizeBits, Float32Array.BYTES_PER_ELEMENT * 3);
+
     gl.drawArrays(gl.LINES, 0, grid.length / strideSize);
 
     drawHudText();
