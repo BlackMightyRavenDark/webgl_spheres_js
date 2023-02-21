@@ -28,7 +28,7 @@ const controls = {
 }
 
 const camera = new Camera(5.0, 25.0, 40.0, 0.0, -30.0, 0.0);
-const font = new Font("/textures/font.png");
+const font = new Font("./../textures/font.png");
 
 function randomRange(min, max) {
     return Math.round(Math.random() * (max - min)) + min;
