@@ -30,6 +30,10 @@ const controls = {
 const camera = new Camera(5.0, 25.0, 40.0, 0.0, -30.0, 0.0);
 const font = new Font("/textures/font.png");
 
+function randomRange(min, max) {
+    return Math.round(Math.random() * (max - min)) + min;
+}
+
 function resetCamera(cam) {
     cam.positionX = 0.0;
     cam.positionY = 0.0;
@@ -65,8 +69,13 @@ function makeSpheres(x, z) {
     const a = new Array(x * z);
     for (let i = 0; i < x; ++i) {
         for (let j = 0; j < z; ++j) {
-            const random = Math.random() * 2;
-            let s = new Sphere(i + 0.5, 0.5, j + 0.5, 0.4, random, 16, 0xFFFF00FF);
+            const speed = Math.random() * 2;
+            const colorRed = randomRange(0, 255);
+            const colorGreen = randomRange(0, 255);
+            const colorBlue = randomRange(0, 255);
+            const colorAlpha = 255;
+            const color = colorRed * Math.pow(256, 3) + colorGreen * Math.pow(256, 2) + colorBlue * 256 + colorAlpha;
+            let s = new Sphere(i + 0.5, 0.5, j + 0.5, 0.4, speed, 16, color);
             s.make();
             a[i * x + j] = s;
         }
